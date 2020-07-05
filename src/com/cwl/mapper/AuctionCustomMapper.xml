@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.cwl.mapper.AuctionCustomMapper" >
+	<resultMap type="com.cwl.pojo.Auction" id="auctionAndRecordResultMap">
+		<id column="auctionId" property="auctionid" jdbcType="INTEGER" />
+	    <result column="auctionName" property="auctionname" jdbcType="VARCHAR" />
+	    <result column="auctionStartPrice" property="auctionstartprice" jdbcType="DECIMAL" />
+	    <result column="auctionUpset" property="auctionupset" jdbcType="DECIMAL" />
+	    <result column="auctionStartTime" property="auctionstarttime" jdbcType="TIMESTAMP" />
+	    <result column="auctionEndTime" property="auctionendtime" jdbcType="TIMESTAMP" />
+	    <result column="auctionPic" property="auctionpic" jdbcType="VARCHAR" />
+	    <result column="auctionPicType" property="auctionpictype" jdbcType="VARCHAR" />
+	    <result column="auctionDesc" property="auctiondesc" jdbcType="VARCHAR" />
+	    <collection property="auctionrecordList" ofType="com.cwl.pojo.Auctionrecord">
+	    	<id column="record_id" property="id" jdbcType="INTEGER" />
+		    <result column="record_user_id" property="userid" jdbcType="INTEGER" />
+		    <result column="record_auction_id" property="auctionid" jdbcType="INTEGER" />
+		    <result column="auctionTime" property="auctiontime" jdbcType="TIMESTAMP" />
+		    <result column="auctionPrice" property="auctionprice" jdbcType="DECIMAL" />
+		    <association property="user" javaType="com.cwl.pojo.Auctionuser">
+		    	<id column="record_user_id" property="userid" jdbcType="INTEGER" />
+    			<result column="userName" property="username" jdbcType="VARCHAR" />
+		    </association>
+	    </collection>
+	</resultMap>
+	
+	<resultMap type="com.cwl.pojo.Auction" id="auctionAndAuctionRecordMap">
+		<id column="auctionId" property="auctionid" jdbcType="INTEGER" />
+	    <result column="auctionName" property="auctionname" jdbcType="VARCHAR" />
+	    <result column="auctionStartPrice" property="auctionstartprice" jdbcType="DECIMAL" />
+	    <result column="auctionStartTime" property="auctionstarttime" jdbcType="TIMESTAMP" />
+	    <result column="auctionEndTime" property="auctionendtime" jdbcType="TIMESTAMP" />
+	    <collection property="auctionrecordList" ofType="com.cwl.pojo.Auctionrecord">
+	    	<id column="auction_record_id" property="id" jdbcType="INTEGER" />
+	    	 <result column="auctionTime" property="auctiontime" jdbcType="TIMESTAMP" />
+		    <result column="auctionPrice" property="auctionprice" jdbcType="DECIMAL" />
+	    	<result column="auction_record_auctionid" property="auctionid" jdbcType="INTEGER" />
+	    	<association property="user" javaType="com.cwl.pojo.Auctionuser">
+	    		<id column="auction_record_userid" property="userid" jdbcType="INTEGER" />
+    			<result column="userName" property="username" jdbcType="VARCHAR" />
+	    	</association>
+	    </collection>
+	</resultMap>
+	<select id="findAuctionAndRecordList" parameterType="int" resultMap="auctionAndRecordResultMap">
+		SELECT auction.*,
+				auctionrecord.id record_id,
+				auctionrecord.auctionId record_auction_id,
+				auctionrecord.userId record_user_id,
+				auctionrecord.auctionPrice,
+				auctionrecord.auctionTime,
+				auctionuser.userName
+		FROM auction
+		LEFT OUTER JOIN auctionrecord ON auction.auctionId=auctionrecord.auctionId
+		LEFT OUTER JOIN auctionuser ON auctionuser.userId=auctionrecord.userId
+		where auction.auctionId=#{value}
+		order by auctionrecord.auctionPrice desc
+	</select>
+	
+	<select id="selectTimeOutAuction" resultType="com.cwl.pojo.AuctionQueryExample">
+		SELECT 
+	auction.auctionname,
+	auction.auctionstarttime,
+	auction.auctionendtime,
+	auction.auctionstartprice,
+	auctionrecord.auctionprice,
+	auctionuser.username
+  FROM 
+	auction,auctionrecord,auctionuser
+  WHERE 
+	auction.auctionid=auctionrecord.auctionid
+	AND auctionrecord.userid=auctionuser.userid
+	AND auction.auctionendtime<![CDATA[<]]>NOW()
+	AND auctionrecord.auctionprice=
+	(SELECT MAX(r.auctionprice) FROM auctionrecord r
+				  WHERE r.auctionid=auction.auctionid)
+	</select>
+	
+	<select id="findAuctionNoEndtimeList" resultMap="auctionAndAuctionRecordMap">
+		SELECT 
+	auction.*,
+	auctionrecord.id auction_record_id,
+	auctionrecord.userid auction_record_userid,
+	auctionrecord.auctionId auction_record_auctionid,
+	auctionrecord.auctiontime,
+	auctionrecord.auctionprice,
+	auctionuser.username
+  FROM 
+	auction,auctionrecord,auctionuser
+  WHERE 
+	 auction.auctionid=auctionrecord.auctionid
+	 AND auctionrecord.userid=auctionuser.userid
+	 AND auction.auctionendtime>NOW()
+	</select>
+</mapper>
